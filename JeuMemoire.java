@@ -16,11 +16,15 @@ public class JeuMemoire extends JFrame {
     private JLabel labelTimer;
     private JLabel labelCoups;
     private JLabel labelBest;
+    private JLabel labelNiveau;
+    private JProgressBar barreNiveau;
     private int coups = 0;
     private int niveau = 1;
     private int meilleurTemps = Integer.MAX_VALUE;
     private final File fichierSauvegarde = new File("sauvegarde.txt");
     private JPanel gridPanel;
+    private boolean estEnPause = false;
+    private JButton boutonPause;
 
     public JeuMemoire() {
         chargerSauvegarde();
@@ -31,8 +35,18 @@ public class JeuMemoire extends JFrame {
     private void initialiserInterface() {
         setTitle("Jeu de mémoire - Niveau " + niveau);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(900, 950);
+        setSize(900, 1000);
         setLocationRelativeTo(null);
+        setFocusable(true);
+
+        addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+                    togglePause();
+                }
+            }
+        });
 
         JMenuBar menuBar = new JMenuBar();
 
@@ -61,26 +75,28 @@ public class JeuMemoire extends JFrame {
 
         setJMenuBar(menuBar);
 
-        // Barre en haut pour les infos
-        JPanel topPanel = new JPanel(new GridLayout(1, 3, 30, 0));
+        JPanel topPanel = new JPanel(new GridLayout(2, 3, 10, 5));
         topPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         topPanel.setBackground(new Color(240, 240, 240));
 
         labelTimer = new JLabel("Temps : 0 s", SwingConstants.CENTER);
-        labelTimer.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        labelTimer.setForeground(new Color(50, 50, 50));
-
         labelCoups = new JLabel("Coups : 0", SwingConstants.CENTER);
-        labelCoups.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        labelCoups.setForeground(new Color(50, 50, 50));
+        labelBest = new JLabel("Meilleur temps : -", SwingConstants.CENTER);
+        labelNiveau = new JLabel("Niveau : " + niveau + "/6", SwingConstants.CENTER);
 
-        labelBest = new JLabel("Meilleur temps : " + (meilleurTemps == Integer.MAX_VALUE ? "-" : meilleurTemps + " s"), SwingConstants.CENTER);
-        labelBest.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        labelBest.setForeground(new Color(50, 50, 50));
+        barreNiveau = new JProgressBar(1, 6);
+        barreNiveau.setValue(niveau);
+        barreNiveau.setStringPainted(true);
+
+        boutonPause = new JButton("Pause");
+        boutonPause.addActionListener(e -> togglePause());
 
         topPanel.add(labelTimer);
         topPanel.add(labelCoups);
         topPanel.add(labelBest);
+        topPanel.add(labelNiveau);
+        topPanel.add(barreNiveau);
+        topPanel.add(boutonPause);
 
         add(topPanel, BorderLayout.NORTH);
     }
@@ -96,15 +112,12 @@ public class JeuMemoire extends JFrame {
         secondes = 0;
         labelTimer.setText("Temps : 0 s");
         labelBest.setText("Meilleur temps : " + (meilleurTemps == Integer.MAX_VALUE ? "-" : meilleurTemps + " s"));
-        setTitle("Jeu de mémoire - Niveau " + niveau + " (" + tailleGrille + "x" + tailleGrille + ")");
+        labelNiveau.setText("Niveau : " + niveau + "/6");
+        barreNiveau.setValue(niveau);
 
-        // Remplacer le panel central si existant
         if (gridPanel != null) remove(gridPanel);
 
         gridPanel = new JPanel();
-        gridPanel.setBackground(new Color(245, 245, 245));
-
-        // Taille bouton dynamique en fonction taille fenêtre & grille
         int tailleBouton = Math.min(700 / tailleGrille, 70);
 
         gridPanel.setLayout(new GridLayout(tailleGrille, tailleGrille, 5, 5));
@@ -127,19 +140,9 @@ public class JeuMemoire extends JFrame {
             btn.setForeground(Color.WHITE);
             btn.setFocusPainted(false);
             btn.setBorder(BorderFactory.createLineBorder(new Color(30, 130, 230), 2));
-            btn.addMouseListener(new java.awt.event.MouseAdapter() {
-                public void mouseEntered(MouseEvent e) {
-                    if (btn.isEnabled() && btn.getText().equals("")) {
-                        btn.setBackground(new Color(41, 128, 185));
-                    }
-                }
-                public void mouseExited(MouseEvent e) {
-                    if (btn.isEnabled() && btn.getText().equals("")) {
-                        btn.setBackground(new Color(52, 152, 219));
-                    }
-                }
+            btn.addActionListener(e -> {
+                if (!estEnPause) retournerCarte(e);
             });
-            btn.addActionListener(e -> retournerCarte(e));
             boutons[i] = btn;
             cacherCarte(btn);
             gridPanel.add(btn);
@@ -152,16 +155,25 @@ public class JeuMemoire extends JFrame {
         demarrerChrono();
     }
 
-    private int getTaillePourNiveau(int niveau) {
-        switch (niveau) {
-            case 1: return 4;
-            case 2: return 6;
-            case 3: return 8;
-            case 4: return 10;
-            case 5: return 12;
-            case 6: return 14;
-            default: return 4;
+    private void togglePause() {
+        estEnPause = !estEnPause;
+        boutonPause.setText(estEnPause ? "Reprendre" : "Pause");
+        if (chrono != null) {
+            if (estEnPause) chrono.stop();
+            else chrono.start();
         }
+    }
+
+    private int getTaillePourNiveau(int niveau) {
+        return switch (niveau) {
+            case 1 -> 4;
+            case 2 -> 6;
+            case 3 -> 8;
+            case 4 -> 10;
+            case 5 -> 12;
+            case 6 -> 14;
+            default -> 4;
+        };
     }
 
     private void demarrerChrono() {
@@ -190,15 +202,11 @@ public class JeuMemoire extends JFrame {
             premierRetourne = index;
         } else {
             if (cartes[premierRetourne].equals(cartes[index])) {
-                // Paire trouvée
                 boutons[premierRetourne].setEnabled(false);
                 btn.setEnabled(false);
                 premierRetourne = -1;
-                if (jeuTermine()) {
-                    victoire();
-                }
+                if (jeuTermine()) victoire();
             } else {
-                // Erreur, cacher après délai
                 JButton btn1 = boutons[premierRetourne];
                 JButton btn2 = btn;
                 timer = new javax.swing.Timer(800, ev -> {
@@ -218,22 +226,19 @@ public class JeuMemoire extends JFrame {
     }
 
     private boolean jeuTermine() {
-        for (JButton btn : boutons) {
-            if (btn.isEnabled()) return false;
-        }
+        for (JButton btn : boutons) if (btn.isEnabled()) return false;
         return true;
     }
 
     private void victoire() {
         chrono.stop();
-
         if (secondes < meilleurTemps) {
             meilleurTemps = secondes;
             labelBest.setText("Meilleur temps : " + meilleurTemps + " s");
         }
 
         int rep = JOptionPane.showOptionDialog(this,
-                "Félicitations ! Vous avez terminé le niveau " + niveau + " en " + secondes + " secondes et " + coups + " coups.\nVoulez-vous passer au niveau suivant ?",
+                "Félicitations ! Niveau " + niveau + " réussi en " + secondes + " s et " + coups + " coups. Passer au suivant ?",
                 "Victoire",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.INFORMATION_MESSAGE,
@@ -275,7 +280,7 @@ public class JeuMemoire extends JFrame {
             ligne = br.readLine();
             if (ligne != null) meilleurTemps = Integer.parseInt(ligne);
         } catch (IOException | NumberFormatException e) {
-            // On ignore, fichier corrompu ou absent
+            // fichier invalide ignoré
         }
     }
 
