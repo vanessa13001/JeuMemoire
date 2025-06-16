@@ -1,0 +1,12 @@
+# Fichiers compilés Java
+*.class
+
+# Dossiers temporaires / sorties de compilation
+bin/
+out/
+target/
+
+# Configs IDE (optionnel, selon ce que tu utilises)
+.idea/
+*.iml
+.vscode/

@@ -14,9 +14,15 @@ public class JeuMemoire extends JFrame {
 
     private int secondes = 0;
     private int coups = 0;
+    private int pairesTrouvees = 0;
 
-    private JLabel labelTimer = new JLabel("Temps : 0 s");
+    private JLabel labelTimer = new JLabel("Temps : 00:00");
     private JLabel labelCoups = new JLabel("Coups : 0");
+    private JLabel labelPaires = new JLabel("Paires : 0 / 8");
+
+    private final String[] EMOJIS = {
+        "🍎", "🍌", "🍒", "🍇", "🍉", "🥝", "🍍", "🍓"
+    };
 
     public JeuMemoire() {
         setTitle("Jeu de mémoire");
@@ -30,13 +36,7 @@ public class JeuMemoire extends JFrame {
         panelCartes.setBackground(new Color(50, 50, 70));
 
         // Initialiser les paires (2 fois chaque nombre)
-        ArrayList<Integer> valeurs = new ArrayList<>();
-        for (int i=0; i<NB_CARTES/2; i++) {
-            valeurs.add(i);
-            valeurs.add(i);
-        }
-        Collections.shuffle(valeurs);
-        valeurs.toArray(cartes);
+        resetCartes();
 
         // Créer boutons
         for (int i=0; i<NB_CARTES; i++) {
@@ -52,15 +52,26 @@ public class JeuMemoire extends JFrame {
             panelCartes.add(btn);
         }
 
-        // Panel info (chrono + coups)
+        // Panel info (chrono + coups + paires + bouton reset)
         JPanel panelInfo = new JPanel(new FlowLayout());
         labelTimer.setFont(new Font("Arial", Font.BOLD, 18));
         labelTimer.setForeground(Color.WHITE);
         labelCoups.setFont(new Font("Arial", Font.BOLD, 18));
         labelCoups.setForeground(Color.WHITE);
+        labelPaires.setFont(new Font("Arial", Font.BOLD, 18));
+        labelPaires.setForeground(Color.WHITE);
+
+        JButton btnReset = new JButton("Rejouer");
+        btnReset.addActionListener(e -> resetGame());
+
         panelInfo.add(labelTimer);
-        panelInfo.add(Box.createHorizontalStrut(30));
+        panelInfo.add(Box.createHorizontalStrut(20));
         panelInfo.add(labelCoups);
+        panelInfo.add(Box.createHorizontalStrut(20));
+        panelInfo.add(labelPaires);
+        panelInfo.add(Box.createHorizontalStrut(20));
+        panelInfo.add(btnReset);
+
         panelInfo.setBackground(new Color(30, 30, 50));
 
         add(panelInfo, BorderLayout.NORTH);
@@ -69,11 +80,23 @@ public class JeuMemoire extends JFrame {
         // Démarrer chrono
         chrono = new Timer(1000, e -> {
             secondes++;
-            labelTimer.setText("Temps : " + secondes + " s");
+            int min = secondes / 60;
+            int sec = secondes % 60;
+            labelTimer.setText(String.format("Temps : %02d:%02d", min, sec));
         });
         chrono.start();
 
         setVisible(true);
+    }
+
+    private void resetCartes() {
+        ArrayList<Integer> valeurs = new ArrayList<>();
+        for (int i=0; i<NB_CARTES/2; i++) {
+            valeurs.add(i);
+            valeurs.add(i);
+        }
+        Collections.shuffle(valeurs);
+        valeurs.toArray(cartes);
     }
 
     private void retournerCarte(ActionEvent e) {
@@ -82,9 +105,10 @@ public class JeuMemoire extends JFrame {
         JButton btn = (JButton) e.getSource();
         int index = (int) btn.getClientProperty("index");
 
-        if (!btn.getText().equals("")) return; // déjà retournée
+        if (!btn.getText().equals("") || !btn.isEnabled()) return; // déjà retournée ou désactivée
 
-        btn.setText(String.valueOf(cartes[index])); // montre la valeur
+        btn.setText(EMOJIS[cartes[index]]);
+        btn.setBackground(new Color(255, 230, 200)); // couleur claire pour carte retournée
 
         coups++;
         labelCoups.setText("Coups : " + coups);
@@ -93,8 +117,12 @@ public class JeuMemoire extends JFrame {
             premierRetourne = index;
         } else {
             if (cartes[premierRetourne].equals(cartes[index])) {
-                // paire trouvée, on laisse visible
+                // paire trouvée, on laisse visible et désactive les boutons
+                boutons[premierRetourne].setEnabled(false);
+                btn.setEnabled(false);
                 premierRetourne = -1;
+                pairesTrouvees++;
+                labelPaires.setText("Paires : " + pairesTrouvees + " / " + (NB_CARTES/2));
                 verifierVictoire();
             } else {
                 int secondRetourne = index;
@@ -116,11 +144,36 @@ public class JeuMemoire extends JFrame {
     }
 
     private void verifierVictoire() {
-        for (JButton btn : boutons) {
-            if (btn.getText().equals("")) return; // cartes encore cachées
+        if (pairesTrouvees == NB_CARTES/2) {
+            chrono.stop();
+            JOptionPane.showMessageDialog(this,
+                "Bravo, vous avez gagné en " + coups + " coups et " + 
+                String.format("%02d:%02d", secondes/60, secondes%60) + " !");
         }
-        chrono.stop();
-        JOptionPane.showMessageDialog(this, "Bravo, vous avez gagné en " + coups + " coups et " + secondes + " secondes !");
+    }
+
+    private void resetGame() {
+        secondes = 0;
+        coups = 0;
+        pairesTrouvees = 0;
+        premierRetourne = -1;
+
+        resetCartes();
+
+        for (int i=0; i<NB_CARTES; i++) {
+            boutons[i].setEnabled(true);
+            cacherCarte(boutons[i]);
+        }
+
+        labelTimer.setText("Temps : 00:00");
+        labelCoups.setText("Coups : 0");
+        labelPaires.setText("Paires : 0 / " + (NB_CARTES/2));
+
+        if (chrono != null && chrono.isRunning()) {
+            chrono.stop();
+        }
+        secondes = 0;
+        chrono.start();
     }
 
     public static void main(String[] args) {
