@@ -35,7 +35,7 @@ public class JeuMemoire extends JFrame {
     private void initialiserInterface() {
         setTitle("Jeu de mémoire - Niveau " + niveau);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(900, 1000);
+        setSize(650, 500);
         setLocationRelativeTo(null);
         setFocusable(true);
 
@@ -194,7 +194,7 @@ public class JeuMemoire extends JFrame {
         if (!btn.getText().equals("")) return;
 
         btn.setText(String.valueOf(cartes[index]));
-        btn.setBackground(new Color(46, 204, 113));
+        btn.setBackground(new Color(46, 204, 113)); // Couleur finale après animation
         coups++;
         labelCoups.setText("Coups : " + coups);
 
@@ -222,7 +222,7 @@ public class JeuMemoire extends JFrame {
 
     private void cacherCarte(JButton btn) {
         btn.setText("");
-        btn.setBackground(new Color(52, 152, 219));
+        btn.setBackground(new Color(52, 152, 219)); // Couleur par défaut
     }
 
     private boolean jeuTermine() {
