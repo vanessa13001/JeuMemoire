@@ -28,6 +28,14 @@ public class MenuLancement extends JFrame {
         fr.put("theme", "Choisir un Thème");
         fr.put("choose_theme", "Choisissez un thème");
 
+        // Ajout des traductions pour les thèmes en français
+        fr.put("theme_fruits", "fruits");
+        fr.put("theme_animaux", "animaux");
+        fr.put("theme_anime", "animé");
+        fr.put("theme_chiffres", "chiffres");
+        fr.put("theme_pokemon", "pokémon");
+        fr.put("theme_nature", "nature");
+
         // Anglais
         Map<String, String> en = new HashMap<>();
         en.put("title", "Memory Game");
@@ -37,6 +45,14 @@ public class MenuLancement extends JFrame {
         en.put("save", "View Saves");
         en.put("theme", "Choose a Theme");
         en.put("choose_theme", "Choose a theme");
+
+        // Ajout des traductions pour les thèmes en anglais
+        en.put("theme_fruits", "fruits");
+        en.put("theme_animaux", "animals");
+        en.put("theme_anime", "anime");
+        en.put("theme_chiffres", "numbers");
+        en.put("theme_pokemon", "pokemon");
+        en.put("theme_nature", "nature");
 
         translations.put("Français", fr);
         translations.put("Anglais", en);
@@ -195,12 +211,13 @@ public class MenuLancement extends JFrame {
         titreTheme.setFont(new Font("Arial", Font.BOLD, 30));
         titreTheme.setForeground(new Color(236, 240, 241));
 
-        String[] themes = {"fruits", "animaux", "animé", "chiffres", "pokémon", "nature"};
-        for (String theme : themes) {
-            JButton button = new JButton(theme);
+        String[] themeKeys = {"theme_fruits", "theme_animaux", "theme_anime", "theme_chiffres", "theme_pokemon", "theme_nature"};
+        for (String themeKey : themeKeys) {
+            JButton button = new JButton(getTranslation(themeKey));
             styleBouton(button);
             button.addActionListener(e -> {
-                selectedTheme = theme;
+                String selectedThemeValue = getThemeValue(themeKey);
+                selectedTheme = selectedThemeValue;
                 dialog.dispose();
                 refreshUI();
             });
@@ -213,11 +230,24 @@ public class MenuLancement extends JFrame {
     }
 
     private String getTranslation(String key) {
-        return translations.get(currentLanguage).get(key);
+        Map<String, String> languageMap = translations.get(currentLanguage);
+        return languageMap != null ? languageMap.getOrDefault(key, key) : key;
     }
 
     private void setLanguage(String language) {
         this.currentLanguage = language;
+    }
+
+    private String getThemeValue(String themeKey) {
+        switch (themeKey) {
+            case "theme_fruits": return "fruits";
+            case "theme_animaux": return "animaux";
+            case "theme_anime": return "animé";
+            case "theme_chiffres": return "chiffres";
+            case "theme_pokemon": return "pokémon";
+            case "theme_nature": return "nature";
+            default: return "fruits"; // Retourne une valeur par défaut
+        }
     }
 
     private void refreshUI() {
