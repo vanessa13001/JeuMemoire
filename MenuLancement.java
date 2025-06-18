@@ -8,6 +8,7 @@ public class MenuLancement extends JFrame {
 
     private Map<String, Map<String, String>> translations;
     private String currentLanguage = "Français";
+    private String selectedTheme = "fruits"; // Thème par défaut
 
     public MenuLancement() {
         initTranslations();
@@ -24,6 +25,8 @@ public class MenuLancement extends JFrame {
         fr.put("play", "Jouer");
         fr.put("language", "Choisir la Langue");
         fr.put("save", "Voir les Sauvegardes");
+        fr.put("theme", "Choisir un Thème");
+        fr.put("choose_theme", "Choisissez un thème");
 
         // Anglais
         Map<String, String> en = new HashMap<>();
@@ -32,6 +35,8 @@ public class MenuLancement extends JFrame {
         en.put("play", "Play");
         en.put("language", "Choose Language");
         en.put("save", "View Saves");
+        en.put("theme", "Choose a Theme");
+        en.put("choose_theme", "Choose a theme");
 
         translations.put("Français", fr);
         translations.put("Anglais", en);
@@ -59,38 +64,57 @@ public class MenuLancement extends JFrame {
         sousTitreLabel.setFont(new Font("Arial", Font.ITALIC, 20));
         sousTitreLabel.setForeground(new Color(189, 195, 199));
 
+        // Ajout d'espace flexible en haut pour centrer verticalement
+        gbc.weighty = 0.7; // Réduit pour monter les boutons
+        panneauPrincipal.add(Box.createVerticalGlue(), gbc);
+
+        // Ajout du titre
+        gbc.weighty = 0;
+        panneauPrincipal.add(titreLabel, gbc);
+
+        // Ajout du sous-titre
+        panneauPrincipal.add(sousTitreLabel, gbc);
+
+        // Ajout d'espace flexible entre le sous-titre et les boutons pour les monter
+        gbc.weighty = 0.3;
+        panneauPrincipal.add(Box.createVerticalGlue(), gbc);
+
         JButton boutonJouer = new JButton(getTranslation("play"));
         JButton boutonLangue = new JButton(getTranslation("language"));
         JButton boutonSauvegardes = new JButton(getTranslation("save"));
+        JButton boutonTheme = new JButton(getTranslation("theme"));
 
-        gbc.weighty = 1; // Espace au-dessus du titre
-        panneauPrincipal.add(Box.createVerticalStrut(100), gbc);
-        gbc.weighty = 0;
-
-        panneauPrincipal.add(titreLabel, gbc);
-        panneauPrincipal.add(sousTitreLabel, gbc);
-
+        // Configuration des boutons
         styleBouton(boutonJouer);
         styleBouton(boutonLangue);
         styleBouton(boutonSauvegardes);
+        styleBouton(boutonTheme);
 
         boutonJouer.addActionListener(e -> {
             SwingUtilities.invokeLater(() -> {
                 try {
-                    // Assurez-vous que la classe JeuMemoire est accessible
-                    JeuMemoire jeu = new JeuMemoire();
-                    jeu.setVisible(true);
+                    JeuMemoire jeu = new JeuMemoire(); // Création de l'objet jeu
+                    jeu.setTheme(selectedTheme); // Définir le thème sélectionné
+                    jeu.setVisible(true); // Rendre visible la fenêtre du jeu
                 } catch (Exception ex) {
+                    ex.printStackTrace();
                     JOptionPane.showMessageDialog(this, "Erreur lors du lancement du jeu: " + ex.getMessage());
                 }
             });
         });
 
         boutonLangue.addActionListener(e -> ouvrirFenetreLangue());
+        boutonTheme.addActionListener(e -> ouvrirFenetreTheme());
 
+        // Ajout des boutons au panneau
         panneauPrincipal.add(boutonJouer, gbc);
         panneauPrincipal.add(boutonLangue, gbc);
+        panneauPrincipal.add(boutonTheme, gbc);
         panneauPrincipal.add(boutonSauvegardes, gbc);
+
+        // Ajout d'espace flexible en bas pour centrer verticalement
+        gbc.weighty = 1;
+        panneauPrincipal.add(Box.createVerticalGlue(), gbc);
 
         add(panneauPrincipal, BorderLayout.CENTER);
     }
@@ -122,7 +146,7 @@ public class MenuLancement extends JFrame {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridwidth = GridBagConstraints.REMAINDER;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(20, 40, 20, 40); // Marges
+        gbc.insets = new Insets(20, 40, 20, 40);
 
         JLabel titreLangue = new JLabel("Choisissez votre langue", SwingConstants.CENTER);
         titreLangue.setFont(new Font("Arial", Font.BOLD, 30));
@@ -151,6 +175,40 @@ public class MenuLancement extends JFrame {
         panneauLangue.add(boutonAnglais, gbc);
 
         dialog.add(panneauLangue);
+        dialog.setVisible(true);
+    }
+
+    private void ouvrirFenetreTheme() {
+        JDialog dialog = new JDialog(this, getTranslation("choose_theme"), true);
+        dialog.setSize(650, 600);
+        dialog.setLocationRelativeTo(this);
+
+        JPanel panneauTheme = new JPanel(new GridBagLayout());
+        panneauTheme.setBackground(new Color(34, 40, 49));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridwidth = GridBagConstraints.REMAINDER;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(20, 40, 20, 40);
+
+        JLabel titreTheme = new JLabel(getTranslation("choose_theme"), SwingConstants.CENTER);
+        titreTheme.setFont(new Font("Arial", Font.BOLD, 30));
+        titreTheme.setForeground(new Color(236, 240, 241));
+
+        String[] themes = {"fruits", "animaux", "animé", "chiffres", "pokémon", "nature"};
+        for (String theme : themes) {
+            JButton button = new JButton(theme);
+            styleBouton(button);
+            button.addActionListener(e -> {
+                selectedTheme = theme;
+                dialog.dispose();
+                refreshUI();
+            });
+            panneauTheme.add(button, gbc);
+        }
+
+        panneauTheme.add(titreTheme, gbc);
+        dialog.add(panneauTheme);
         dialog.setVisible(true);
     }
 

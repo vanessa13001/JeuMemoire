@@ -1,8 +1,10 @@
+import javax.sound.sampled.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.util.*;
+import java.util.List;
 
 public class JeuMemoire extends JFrame {
     private int tailleGrille;
@@ -25,15 +27,28 @@ public class JeuMemoire extends JFrame {
     private JPanel gridPanel;
     private boolean estEnPause = false;
     private JButton boutonPause;
+    private Clip clip;
+    private String theme;
 
     public JeuMemoire() {
-        chargerSauvegarde();
-        initialiserInterface();
-        initialiserJeu();
+        System.out.println("Initialisation du jeu...");
+        try {
+            chargerSauvegarde();
+            System.out.println("Sauvegarde chargée.");
+            initialiserInterface();
+            System.out.println("Interface initialisée.");
+            jouerMusiqueEnBoucle();
+            System.out.println("Musique démarrée.");
+            initialiserJeu();
+            System.out.println("Jeu initialisé.");
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Erreur lors de l'initialisation du jeu: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     private void initialiserInterface() {
-        setTitle("Jeu de mémoire - Niveau " + niveau);
+        setTitle("Jeu de Mémoire - Niveau " + niveau);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(650, 500);
         setLocationRelativeTo(null);
@@ -75,7 +90,7 @@ public class JeuMemoire extends JFrame {
 
         setJMenuBar(menuBar);
 
-        JPanel topPanel = new JPanel(new GridLayout(2, 3, 10, 5));
+        JPanel topPanel = new JPanel(new GridLayout(2, 4, 10, 5));
         topPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         topPanel.setBackground(new Color(240, 240, 240));
 
@@ -91,12 +106,20 @@ public class JeuMemoire extends JFrame {
         boutonPause = new JButton("Pause");
         boutonPause.addActionListener(e -> togglePause());
 
+        JButton boutonAugmenterVolume = new JButton("Volume +");
+        JButton boutonDiminuerVolume = new JButton("Volume -");
+
+        boutonAugmenterVolume.addActionListener(e -> augmenterVolume());
+        boutonDiminuerVolume.addActionListener(e -> diminuerVolume());
+
         topPanel.add(labelTimer);
         topPanel.add(labelCoups);
         topPanel.add(labelBest);
         topPanel.add(labelNiveau);
         topPanel.add(barreNiveau);
+        topPanel.add(boutonDiminuerVolume);
         topPanel.add(boutonPause);
+        topPanel.add(boutonAugmenterVolume);
 
         add(topPanel, BorderLayout.NORTH);
     }
@@ -123,7 +146,7 @@ public class JeuMemoire extends JFrame {
         gridPanel.setLayout(new GridLayout(tailleGrille, tailleGrille, 5, 5));
         gridPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        ArrayList<Integer> valeurs = new ArrayList<>();
+        List<Integer> valeurs = new ArrayList<>();
         for (int i = 0; i < nbCartes / 2; i++) {
             valeurs.add(i);
             valeurs.add(i);
@@ -194,7 +217,7 @@ public class JeuMemoire extends JFrame {
         if (!btn.getText().equals("")) return;
 
         btn.setText(String.valueOf(cartes[index]));
-        btn.setBackground(new Color(46, 204, 113)); // Couleur finale après animation
+        btn.setBackground(new Color(46, 204, 113));
         coups++;
         labelCoups.setText("Coups : " + coups);
 
@@ -222,7 +245,7 @@ public class JeuMemoire extends JFrame {
 
     private void cacherCarte(JButton btn) {
         btn.setText("");
-        btn.setBackground(new Color(52, 152, 219)); // Couleur par défaut
+        btn.setBackground(new Color(52, 152, 219));
     }
 
     private boolean jeuTermine() {
@@ -273,21 +296,76 @@ public class JeuMemoire extends JFrame {
     }
 
     private void chargerSauvegarde() {
-        if (!fichierSauvegarde.exists()) return;
+        if (!fichierSauvegarde.exists()) {
+            System.out.println("Aucun fichier de sauvegarde trouvé.");
+            return;
+        }
         try (BufferedReader br = new BufferedReader(new FileReader(fichierSauvegarde))) {
             String ligne = br.readLine();
             if (ligne != null) niveau = Integer.parseInt(ligne);
             ligne = br.readLine();
             if (ligne != null) meilleurTemps = Integer.parseInt(ligne);
         } catch (IOException | NumberFormatException e) {
-            // fichier invalide ignoré
+            System.err.println("Erreur lors du chargement de la sauvegarde : " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
+    public void jouerMusiqueEnBoucle() {
+        new Thread(() -> {
+            try {
+                File fichierWAV = new File("assets/game.wav");
+                if (!fichierWAV.exists()) {
+                    System.err.println("Le fichier de musique n'existe pas : " + fichierWAV.getAbsolutePath());
+                    return;
+                }
+                AudioInputStream audioStream = AudioSystem.getAudioInputStream(fichierWAV);
+                clip = AudioSystem.getClip();
+                clip.open(audioStream);
+                clip.loop(Clip.LOOP_CONTINUOUSLY);
+            } catch (Exception e) {
+                System.err.println("Erreur lors de la lecture de la musique : " + e.getMessage());
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    private void diminuerVolume() {
+        if (clip != null) {
+            FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+            float volume = gainControl.getValue();
+            float min = gainControl.getMinimum();
+            float step = 2.0f;
+            if (volume - step >= min) {
+                gainControl.setValue(volume - step);
+            } else {
+                gainControl.setValue(min);
+            }
+        }
+    }
+
+    private void augmenterVolume() {
+        if (clip != null) {
+            FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+            float volume = gainControl.getValue();
+            float max = gainControl.getMaximum();
+            float step = 2.0f;
+            if (volume + step <= max) {
+                gainControl.setValue(volume + step);
+            } else {
+                gainControl.setValue(max);
+            }
+        }
+    }
+
+    public void setTheme(String theme) {
+        this.theme = theme;
+        setTitle("Jeu de Mémoire - Thème : " + theme);
+        System.out.println("Thème sélectionné : " + theme);
+    }
+
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            JeuMemoire jeu = new JeuMemoire();
-            jeu.setVisible(true);
-        });
+        SwingUtilities.invokeLater(() -> new JeuMemoire().setVisible(true));
     }
 }
+    
