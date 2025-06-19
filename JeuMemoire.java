@@ -30,6 +30,11 @@ public class JeuMemoire extends JFrame {
     private Clip clip;
     private String theme;
 
+    // Ajoutez ces champs à votre classe
+    private List<Confetti> confettis = new ArrayList<>();
+    private javax.swing.Timer animationTimer;
+    private int centerX, centerY;
+
     public JeuMemoire() {
         System.out.println("Initialisation du jeu...");
         try {
@@ -41,6 +46,7 @@ public class JeuMemoire extends JFrame {
             System.out.println("Musique démarrée.");
             initialiserJeu();
             System.out.println("Jeu initialisé.");
+            initAnimationTimer();
         } catch (Exception e) {
             JOptionPane.showMessageDialog(null, "Erreur lors de l'initialisation du jeu: " + e.getMessage());
             e.printStackTrace();
@@ -260,6 +266,9 @@ public class JeuMemoire extends JFrame {
             labelBest.setText("Meilleur temps : " + meilleurTemps + " s");
         }
 
+        // Démarrer l'animation des confettis
+        startConfettiExplosion();
+
         int rep = JOptionPane.showOptionDialog(this,
                 "Félicitations ! Niveau " + niveau + " réussi en " + secondes + " s et " + coups + " coups. Passer au suivant ?",
                 "Victoire",
@@ -364,8 +373,82 @@ public class JeuMemoire extends JFrame {
         System.out.println("Thème sélectionné : " + theme);
     }
 
+    private void initAnimationTimer() {
+        animationTimer = new javax.swing.Timer(50, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                updateConfettis();
+                repaint();
+            }
+        });
+    }
+
+    private void startConfettiExplosion() {
+        confettis.clear();
+        // Centre de la fenêtre pour l'explosion des confettis
+        centerX = getWidth() / 2;
+        centerY = getHeight() / 2;
+        int numberOfConfettis = 100; // Nombre de confettis
+        for (int i = 0; i < numberOfConfettis; i++) {
+            confettis.add(new Confetti(centerX, centerY));
+        }
+        if (!animationTimer.isRunning()) {
+            animationTimer.start();
+        }
+    }
+
+    private void updateConfettis() {
+        for (Iterator<Confetti> iterator = confettis.iterator(); iterator.hasNext();) {
+            Confetti confetti = iterator.next();
+            confetti.update();
+            // Retirer les confettis qui sortent de l'écran pour éviter les accumulations
+            if (confetti.getY() > getHeight()) {
+                iterator.remove();
+            }
+        }
+    }
+
+    @Override
+    public void paint(Graphics g) {
+        super.paint(g);
+        for (Confetti confetti : confettis) {
+            confetti.draw(g);
+        }
+    }
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new JeuMemoire().setVisible(true));
     }
 }
-    
+
+class Confetti {
+    private int x, y;
+    private double vx, vy;
+    private Color color;
+
+    public Confetti(int centerX, int centerY) {
+        this.x = centerX;
+        this.y = centerY;
+        double angle = Math.random() * Math.PI * 2;
+        double speed = Math.random() * 5 + 2;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        this.color = new Color((float) Math.random(), (float) Math.random(), (float) Math.random());
+    }
+
+    public void update() {
+        x += vx;
+        y += vy;
+        vy += 0.1; // Simuler la gravité
+    }
+
+    public int getY() {
+        return y;
+    }
+
+    public void draw(Graphics g) {
+        Graphics2D g2d = (Graphics2D) g;
+        g2d.setColor(color);
+        g2d.fillRect(x, y, 10, 10); // Dessiner un carré de 10x10 pour le confetti
+    }
+}
